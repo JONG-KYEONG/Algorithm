@@ -1,137 +1,169 @@
-import java.util.*;
 import java.io.*;
+import java.util.*;
+
+
 public class Main {
-	static String[][] board;
-	static int N;
-	static int[] train;
-	static int[] goal;
-	static int turn;
-	static int goalTurn;
-	public static void main(String[] args) throws IOException{
+	static int dx[] = {0, 1, 0, -1, 1, -1, -1, 1};
+	static int dy[] = {1, 0, -1, 0, 1, 1, -1, -1};
+	static int n;
+	static char[][] map;
+	static Node end;
+	
+	public static void main(String[] args)throws Exception{
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		N = Integer.parseInt(br.readLine());
-		board = new String[N][N];
-		train = new int[2];
-		goal = new int[2];
-		for(int n = 0; n < N; n++) {
-			board[n] = br.readLine().split("");
-		}
-		turn = 0; // 0은 가로, 1은 세로
-		boolean findTrain = false;
-		boolean findGoal = false;
-		for(int n = 0; n < N; n++) {
-			for(int m = 0; m < N; m++) {
-				if(findGoal && findTrain) break;
-				if(board[n][m].equals("B") && !findTrain) {
-					if(n+1 < N && board[n+1][m].equals("B")) {
-						turn = 1;
-						train[0] = n+1;
-						train[1] = m;
+		StringTokenizer st;
+		n = Integer.parseInt(br.readLine());
+		map = new char[n][n];
+		
+		int bx = -1;
+		int ex = -1;
+		
+		Node start = null;
+		
+		for(int i = 0; i < n; i++) {
+			String s = br.readLine();
+			for(int j = 0; j < n; j++) {
+				map[i][j] = s.charAt(j);
+				
+				if(map[i][j] == 'B') {
+					map[i][j] = '0';
+					
+					if(ex == -1) {
+						ex = i;
 					}
 					else {
-						train[0] = n;
-						train[1] = m+1;
+						if(ex == i) {
+							end = new Node(i, j, 0, true);
+						}
+						else {
+							end = new Node(i, j, 0, false);
+						}
+						
+						ex = -1;
 					}
-					findTrain = true;
 				}
-				if(board[n][m].equals("E") && !findGoal) {
-					if(n+1 < N && board[n+1][m].equals("E")) {
-						goalTurn = 1;
-						goal[0] = n+1;
-						goal[1] = m;
+				if(map[i][j] == 'E') {
+					map[i][j] = '0';
+					
+					if(bx == -1) {
+						bx = i;
 					}
 					else {
-						goal[0] = n;
-						goal[1] = m+1;
+						if(bx == i) {
+							start = new Node(i, j, 0, true);
+						}
+						else {
+							start = new Node(i, j, 0, false);
+						}
+						
+						bx = -1;
 					}
-					findGoal = true;
 				}
+				
 			}
 		}
-		find();
+		
+		
+		System.out.print(dijstra(start));
 	}
-	public static void find() {
-		Queue<int[]> q = new LinkedList<>();
-		q.offer(new int[] {train[0], train[1], turn, 0});
-		boolean[][][] visited = new boolean[N][N][2];
-		while(!q.isEmpty()) {
-			int[] lst = q.poll();
-			if(lst[0] == goal[0] && lst[1] == goal[1] && lst[2] == goalTurn) {
-				System.out.println(lst[3]);
-				return;
+	
+	static int dijstra(Node start) {
+		PriorityQueue<Node> pq = new PriorityQueue<>();
+		pq.add(start);
+		
+		boolean visitedR[][] = new boolean[n][n]; 
+		boolean visitedU[][] = new boolean[n][n]; 
+		
+		while(!pq.isEmpty()) {
+			Node node = pq.poll();
+			
+			if(end.x == node.x && end.y == node.y && end.isRight == node.isRight) {
+				return node.dis;
 			}
-			// 0은 가로, 1은 세로
-			if(lst[2] == 0) {
-				//상
-				if(lst[0]-1 >= 0 && !visited[lst[0]-1][lst[1]][lst[2]] &&!board[lst[0]-1][lst[1]].equals("1") && !board[lst[0]-1][lst[1]+1].equals("1") && !board[lst[0]-1][lst[1]-1].equals("1")) {
-					q.offer(new int[] {lst[0]-1, lst[1], lst[2], lst[3]+1});
-					visited[lst[0]-1][lst[1]][lst[2]] = true;
+			
+			if(node.isRight) {
+				if(visitedR[node.x][node.y]) {
+					continue;
 				}
-				//하
-				if(lst[0]+1 < N && !visited[lst[0]+1][lst[1]][lst[2]] &&!board[lst[0]+1][lst[1]].equals("1") && !board[lst[0]+1][lst[1]+1].equals("1") && !board[lst[0]+1][lst[1]-1].equals("1")) {
-					q.offer(new int[] {lst[0]+1, lst[1], lst[2], lst[3]+1});
-					visited[lst[0]+1][lst[1]][lst[2]] = true;
+				visitedR[node.x][node.y] = true;
+			}
+			else {
+				if(visitedU[node.x][node.y]) {
+					continue;
 				}
-				//좌
-				if(lst[1] - 2 >= 0 && !visited[lst[0]][lst[1] - 1][lst[2]] &&!board[lst[0]][lst[1]-2].equals("1")) {
-					q.offer(new int[] {lst[0], lst[1]-1, lst[2], lst[3]+1});
-					visited[lst[0]][lst[1] - 1][lst[2]] = true;
-				}
-				//우
-				if(lst[1] + 2 < N && !visited[lst[0]][lst[1] + 1][lst[2]] &&!board[lst[0]][lst[1]+2].equals("1")) {
-					q.offer(new int[] {lst[0], lst[1]+1, lst[2], lst[3]+1});
-					visited[lst[0]][lst[1] + 1][lst[2]] = true;
-				}
-				//회전
-				if(lst[0]+1 < N && lst[0]-1 > 0 && !visited[lst[0]][lst[1]][1]) {
-					boolean flag = false;
-					for(int x = -1; x <= 1; x++) {
-						for(int y = -1; y <= 1; y++) {
-							if(board[lst[0]+x][lst[1]+y].equals("1")) flag = true;
+				visitedU[node.x][node.y] = true;
+			}
+			
+			
+			for(int i = 0; i < 4; i++) {
+				int nx = node.x + dx[i];
+				int ny = node.y + dy[i];
+				
+				if(nx >= 0 && ny >= 0 && nx < n && ny < n) {
+					if(node.isRight) {
+						if(ny+1 >= n || ny -1 < 0) {
+							continue;
+						}
+						
+						if(map[nx][ny] == '0' && map[nx][ny-1] == '0' && map[nx][ny+1] == '0') {
+							pq.add(new Node(nx, ny, node.dis + 1, node.isRight));
 						}
 					}
-					if(!flag) {
-						q.offer(new int[] {lst[0], lst[1], 1, lst[3]+1});
-						visited[lst[0]][lst[1]][1] = true;
-					}
-				}
-			}
-			if(lst[2] == 1) {
-				//상
-				if(lst[0] - 2 >= 0 && !visited[lst[0]-1][lst[1]][lst[2]] && !board[lst[0]-2][lst[1]].equals("1")) {
-					q.offer(new int[] {lst[0]-1, lst[1], lst[2], lst[3]+1});
-					visited[lst[0]-1][lst[1]][lst[2]] = true;
-				}
-				//하
-				if(lst[0] + 2 < N && !visited[lst[0]+1][lst[1]][lst[2]] && !board[lst[0]+2][lst[1]].equals("1")) {
-					q.offer(new int[] {lst[0]+1, lst[1], lst[2], lst[3]+1});
-					visited[lst[0]+1][lst[1]][lst[2]] = true;
-				}
-				//좌
-				if(lst[1] - 1 >= 0 && !visited[lst[0]][lst[1]-1][lst[2]] && !board[lst[0]-1][lst[1]-1].equals("1") && !board[lst[0]][lst[1]-1].equals("1") && !board[lst[0]+1][lst[1]-1].equals("1")) {
-					q.offer(new int[] {lst[0], lst[1]-1, lst[2], lst[3]+1});
-					visited[lst[0]][lst[1]-1][lst[2]] = true;
-				}
-				//우
-				if(lst[1] + 1 < N && !visited[lst[0]][lst[1]+1][lst[2]] && !board[lst[0]-1][lst[1]+1].equals("1") && !board[lst[0]][lst[1]+1].equals("1") && !board[lst[0]+1][lst[1]+1].equals("1")) {
-					q.offer(new int[] {lst[0], lst[1]+1, lst[2], lst[3]+1});
-					visited[lst[0]][lst[1]+1][lst[2]] = true;
-				}
-				//회전
-				if(lst[1] - 1 >= 0 && lst[1] + 1 < N && !visited[lst[0]][lst[1]][0]) {
-					boolean flag = false;
-					for(int x = -1; x <= 1; x++) {
-						for(int y = -1; y <= 1; y++) {
-							if(board[lst[0]+x][lst[1]+y].equals("1")) flag = true;
+					else {
+						if(nx+1 >= n || nx -1 < 0) {
+							continue;
+						}
+						
+						if(map[nx][ny] == '0' && map[nx-1][ny] == '0' && map[nx+1][ny] == '0') {
+							pq.add(new Node(nx, ny, node.dis + 1, node.isRight));
 						}
 					}
-					if(!flag) {
-						q.offer(new int[] {lst[0], lst[1], 0, lst[3]+1});
-						visited[lst[0]][lst[1]][0] = true;
-					}
 				}
 			}
+			
+			boolean canT = true;
+			
+			for(int i = 0; i < 8; i++) {
+				int nx = node.x + dx[i];
+				int ny = node.y + dy[i];
+				if(nx >= 0 && ny >= 0 && nx < n && ny < n) {
+					if(map[nx][ny] != '0') {
+						canT = false;
+						break;
+					}
+				}
+				else {
+					canT = false;
+					break;
+				}
+			}
+			
+			if(canT) {
+				pq.add(new Node(node.x, node.y, node.dis + 1, !node.isRight));
+			}
+			
+			
 		}
-		System.out.println(0);
+		
+		
+		return 0;
 	}
+	
+	static class Node implements Comparable<Node>{
+		int x;
+		int y;
+		int dis;
+		boolean isRight;
+		Node(int x, int y, int dis, boolean isRight){
+			this.x = x;
+			this.y = y;
+			this.dis = dis;
+			this.isRight = isRight;
+		}
+		@Override
+		public int compareTo(Node o) {
+			return this.dis - o.dis;
+		}
+	}
+
 }
